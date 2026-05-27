@@ -1,0 +1,161 @@
+import { addDays, format, parseISO, startOfWeek, isWithinInterval } from 'date-fns'
+import type { DayOfWeek, PlanWeek, PlannedWorkout, UnavailableRange } from './types'
+import { TEMPLATE } from './template'
+
+const DAYS_OF_WEEK: DayOfWeek[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function isoDate(d: Date): string {
+  return format(d, 'yyyy-MM-dd')
+}
+
+/** Returns the Monday that begins the week containing `date`. */
+function mondayOf(date: Date): Date {
+  return startOfWeek(date, { weekStartsOn: 1 })
+}
+
+/** True if the ISO date falls within any of the provided ranges (inclusive). */
+function isBlocked(dateISO: string, ranges: UnavailableRange[]): UnavailableRange | undefined {
+  const d = parseISO(dateISO)
+  return ranges.find((r) =>
+    isWithinInterval(d, { start: parseISO(r.startDate), end: parseISO(r.endDate) }),
+  )
+}
+
+/**
+ * Build the 8-week plan given a race date and a list of unavailable ranges.
+ *
+ * - The race date is the final Sunday (Week 8 Sun).
+ * - Week 1 Monday = raceDate - 7 weeks + (Sun→Mon delta), i.e. 7 weeks before the
+ *   Monday of race week.
+ * - For each week, dates are assigned Mon..Sun from the template.
+ * - Reshuffle pass: any workout whose date lands in an unavailable range gets
+ *   replaced with the range's `treatAs` type. If the long run is displaced,
+ *   it's rescheduled to the latest available weekday in the same week
+ *   (preferring later days closer to the original Sunday slot).
+ */
+export function generatePlan(
+  raceDateISO: string,
+  unavailableRanges: UnavailableRange[],
+): PlanWeek[] {
+  const raceDate = parseISO(raceDateISO)
+  const week8Monday = mondayOf(raceDate)
+  const weeks: PlanWeek[] = []
+
+  for (const tmpl of TEMPLATE) {
+    const weekOffset = tmpl.weekNumber - 8
+    const weekStart = addDays(week8Monday, weekOffset * 7)
+    const weekEnd = addDays(weekStart, 6)
+
+    // First pass: assign dates from template, no reshuffles yet.
+    let workouts: PlannedWorkout[] = tmpl.workouts.map((w) => {
+      const dayIndex = DAYS_OF_WEEK.indexOf(w.day)
+      const date = isoDate(addDays(weekStart, dayIndex))
+      return {
+        id: `w${tmpl.weekNumber}-${w.day.toLowerCase()}`,
+        weekNumber: tmpl.weekNumber,
+        day: w.day,
+        date,
+        type: w.type,
+        plannedMiles: w.miles,
+        label: w.label,
+      }
+    })
+
+    // Second pass: handle blocked days.
+    const longRun = workouts.find((w) => w.type === 'long' || w.type === 'race-day')
+    const longRunBlocked = longRun && isBlocked(longRun.date, unavailableRanges)
+
+    if (longRun && longRunBlocked && longRun.type === 'long') {
+      // Find the latest non-blocked weekday in the same week to relocate the long
+      // run. Walk back from Sat → Mon (skip Sun, that's the original slot).
+      const candidates = workouts.filter((w) => w.day !== 'Sun')
+      const reverse = [...candidates].reverse()
+      const target = reverse.find((w) => !isBlocked(w.date, unavailableRanges))
+
+      if (target) {
+        const originalSundayId = longRun.id
+        const targetId = target.id
+        const targetDay = target.day
+
+        workouts = workouts.map((w) => {
+          if (w.id === originalSundayId) {
+            return {
+              ...w,
+              type: longRunBlocked.treatAs,
+              plannedMiles: 0,
+              label: longRunBlocked.label,
+              note: 'Tournament weekend',
+            }
+          }
+          if (w.id === targetId) {
+            return {
+              ...w,
+              type: 'long',
+              plannedMiles: longRun.plannedMiles,
+              label: longRun.label,
+              rescheduledFrom: 'Sun',
+              note: `Moved from Sun (${longRunBlocked.label})`,
+            }
+          }
+          return w
+        })
+        void targetDay  // keep targetDay symbol for clarity / future tests
+      }
+    }
+
+    // Third pass: any remaining workouts whose date is blocked → replace with
+    // the range's treatAs type (handles non-long-run conflicts and tournament
+    // days that are NOT the relocated long-run slot).
+    workouts = workouts.map((w) => {
+      // Don't overwrite the just-relocated long run; it's intentionally on a
+      // day inside the range only if no other option existed (degenerate case).
+      if (w.rescheduledFrom) return w
+      const blocking = isBlocked(w.date, unavailableRanges)
+      if (!blocking) return w
+      // If we already replaced this slot above (the original Sun slot), keep it.
+      if (w.type === blocking.treatAs && w.note === 'Tournament weekend') return w
+      return {
+        ...w,
+        type: blocking.treatAs,
+        plannedMiles: 0,
+        label: blocking.label,
+        note: 'Tournament weekend',
+      }
+    })
+
+    weeks.push({
+      weekNumber: tmpl.weekNumber,
+      label: tmpl.label,
+      startDate: isoDate(weekStart),
+      endDate: isoDate(weekEnd),
+      workouts,
+    })
+  }
+
+  return weeks
+}
+
+/** Total planned miles across all weeks (used for "X of Y miles" UI). */
+export function totalPlannedMiles(weeks: PlanWeek[]): number {
+  return weeks.reduce(
+    (sum, w) => sum + w.workouts.reduce((s, x) => s + x.plannedMiles, 0),
+    0,
+  )
+}
+
+/** Total non-rest workouts (used for "X of Y workouts" UI). */
+export function totalWorkouts(weeks: PlanWeek[]): number {
+  return weeks.reduce(
+    (sum, w) => sum + w.workouts.filter((x) => x.type !== 'rest').length,
+    0,
+  )
+}
+
+/** The 1-based week number containing today, or 1 before the plan starts. */
+export function currentWeekNumber(weeks: PlanWeek[], today = new Date()): number {
+  const todayISO = isoDate(today)
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    if (todayISO >= weeks[i].startDate) return weeks[i].weekNumber
+  }
+  return 1
+}

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4's `dark:` variant defaults to @media (prefers-color-scheme: dark),
+ * so OS-driven dark mode works out of the box with no custom config. */
+
 @theme {
   --color-accent: #1D9E75;
   --color-accent-50: #E1F5EE;
@@ -25,6 +28,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #09090b;
+    color: #e4e4e7;
+    color-scheme: dark;
+  }
 }
 
 /* Safe-area insets for iOS PWA */
