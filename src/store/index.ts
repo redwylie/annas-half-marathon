@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { LoggedWorkout, UnavailableRange, UserSettings } from '../lib/types'
+import type {
+  LoggedWorkout,
+  UnavailableRange,
+  UserSettings,
+  WorkoutOverride,
+} from '../lib/types'
 
 const RACE_DATE_DEFAULT = '2026-08-02'
 
@@ -31,8 +36,11 @@ const DEFAULT_TOURNAMENTS: UnavailableRange[] = [
 interface AppState {
   settings: UserSettings
   logs: Record<string, LoggedWorkout>
+  overrides: Record<string, WorkoutOverride>
   toggleComplete: (workoutId: string) => void
   logWorkout: (log: LoggedWorkout) => void
+  setOverride: (workoutId: string, override: WorkoutOverride) => void
+  clearOverride: (workoutId: string) => void
   updateSettings: (patch: Partial<UserSettings>) => void
   addUnavailable: (range: Omit<UnavailableRange, 'id'>) => void
   removeUnavailable: (id: string) => void
@@ -52,6 +60,7 @@ export const useStore = create<AppState>()(
     (set) => ({
       settings: initialSettings,
       logs: {},
+      overrides: {},
       toggleComplete: (workoutId) =>
         set((s) => {
           const existing = s.logs[workoutId]
@@ -69,6 +78,16 @@ export const useStore = create<AppState>()(
         }),
       logWorkout: (log) =>
         set((s) => ({ logs: { ...s.logs, [log.workoutId]: log } })),
+      setOverride: (workoutId, override) =>
+        set((s) => ({
+          overrides: { ...s.overrides, [workoutId]: override },
+        })),
+      clearOverride: (workoutId) =>
+        set((s) => {
+          const { [workoutId]: _removed, ...rest } = s.overrides
+          void _removed
+          return { overrides: rest }
+        }),
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
       addUnavailable: (range) =>
@@ -88,7 +107,7 @@ export const useStore = create<AppState>()(
             unavailableRanges: s.settings.unavailableRanges.filter((r) => r.id !== id),
           },
         })),
-      resetAll: () => set({ settings: initialSettings, logs: {} }),
+      resetAll: () => set({ settings: initialSettings, logs: {}, overrides: {} }),
     }),
     {
       name: 'ahmt-v1',

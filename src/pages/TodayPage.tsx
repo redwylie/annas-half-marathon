@@ -13,12 +13,15 @@ import LogSheet from '../components/LogSheet'
 export default function TodayPage() {
   const settings = useStore((s) => s.settings)
   const logs = useStore((s) => s.logs)
+  const overrides = useStore((s) => s.overrides)
   const toggleComplete = useStore((s) => s.toggleComplete)
   const logWorkout = useStore((s) => s.logWorkout)
+  const setOverride = useStore((s) => s.setOverride)
+  const clearOverride = useStore((s) => s.clearOverride)
 
   const weeks = useMemo(
-    () => generatePlan(settings.raceDate, settings.unavailableRanges),
-    [settings.raceDate, settings.unavailableRanges],
+    () => generatePlan(settings.raceDate, settings.unavailableRanges, overrides),
+    [settings.raceDate, settings.unavailableRanges, overrides],
   )
   const today = useMemo(() => getToday(weeks), [weeks])
   const completedIds = useMemo(() => new Set(Object.keys(logs)), [logs])
@@ -47,9 +50,12 @@ export default function TodayPage() {
       <LogSheet
         workout={logging}
         initialLog={logging ? logs[logging.id] : undefined}
+        hasOverride={logging ? !!overrides[logging.id] : false}
         open={!!logging}
         onClose={() => setLogging(null)}
         onSave={logWorkout}
+        onOverride={setOverride}
+        onClearOverride={clearOverride}
       />
     </div>
   )
@@ -248,51 +254,55 @@ function WorkoutCard({
           </div>
         )}
 
-        {isRest ? (
-          <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-            Today is a rest day. Recovery is part of training — soak it in.
-          </p>
-        ) : isTournament ? (
-          <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-            Frisbee tournament. Crush it out there.
-          </p>
-        ) : (
-          <>
-            <div className="mt-5 flex gap-2">
+        <>
+          {isRest && (
+            <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+              Today is a rest day. Recovery is part of training — soak it in.
+            </p>
+          )}
+          {isTournament && (
+            <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+              Frisbee tournament. Crush it out there.
+            </p>
+          )}
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              onClick={onToggle}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                completed
+                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600'
+              }`}
+            >
+              {completed ? (
+                <>
+                  <Check className="h-4 w-4" strokeWidth={3} />
+                  Done — tap to undo
+                </>
+              ) : isRest ? (
+                'Mark rested'
+              ) : isTournament ? (
+                'Mark tournament done'
+              ) : (
+                'Mark complete'
+              )}
+            </button>
+            {onLog && (
               <button
                 type="button"
-                onClick={onToggle}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-                  completed
-                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600'
-                }`}
+                onClick={onLog}
+                aria-label={isRest ? 'Log rest day notes' : 'Log workout details'}
+                className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                {completed ? (
-                  <>
-                    <Check className="h-4 w-4" strokeWidth={3} />
-                    Done — tap to undo
-                  </>
-                ) : (
-                  'Mark complete'
-                )}
+                <PencilLine className="h-4 w-4" />
               </button>
-              {onLog && (
-                <button
-                  type="button"
-                  onClick={onLog}
-                  aria-label="Log workout details"
-                  className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                >
-                  <PencilLine className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            {log && (log.actualMiles || log.actualMinutes) && (
-              <LoggedSummary log={log} />
             )}
-          </>
-        )}
+          </div>
+          {log && (log.actualMiles || log.actualMinutes || log.notes) && (
+            <LoggedSummary log={log} />
+          )}
+        </>
       </div>
     </div>
   )

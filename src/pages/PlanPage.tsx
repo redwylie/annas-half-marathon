@@ -8,12 +8,15 @@ import type { PlannedWorkout } from '../lib/types'
 export default function PlanPage() {
   const settings = useStore((s) => s.settings)
   const logs = useStore((s) => s.logs)
+  const overrides = useStore((s) => s.overrides)
   const toggleComplete = useStore((s) => s.toggleComplete)
   const logWorkout = useStore((s) => s.logWorkout)
+  const setOverride = useStore((s) => s.setOverride)
+  const clearOverride = useStore((s) => s.clearOverride)
 
   const weeks = useMemo(
-    () => generatePlan(settings.raceDate, settings.unavailableRanges),
-    [settings.raceDate, settings.unavailableRanges],
+    () => generatePlan(settings.raceDate, settings.unavailableRanges, overrides),
+    [settings.raceDate, settings.unavailableRanges, overrides],
   )
   const currentWk = useMemo(() => currentWeekNumber(weeks), [weeks])
   const completedIds = useMemo(() => new Set(Object.keys(logs)), [logs])
@@ -47,9 +50,12 @@ export default function PlanPage() {
       <LogSheet
         workout={logging}
         initialLog={logging ? logs[logging.id] : undefined}
+        hasOverride={logging ? !!overrides[logging.id] : false}
         open={!!logging}
         onClose={() => setLogging(null)}
         onSave={logWorkout}
+        onOverride={setOverride}
+        onClearOverride={clearOverride}
       />
     </div>
   )

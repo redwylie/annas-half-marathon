@@ -1,5 +1,11 @@
 import { addDays, format, parseISO, startOfWeek, isWithinInterval } from 'date-fns'
-import type { DayOfWeek, PlanWeek, PlannedWorkout, UnavailableRange } from './types'
+import type {
+  DayOfWeek,
+  PlanWeek,
+  PlannedWorkout,
+  UnavailableRange,
+  WorkoutOverride,
+} from './types'
 import { TEMPLATE } from './template'
 
 const DAYS_OF_WEEK: DayOfWeek[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -36,6 +42,7 @@ function isBlocked(dateISO: string, ranges: UnavailableRange[]): UnavailableRang
 export function generatePlan(
   raceDateISO: string,
   unavailableRanges: UnavailableRange[],
+  overrides: Record<string, WorkoutOverride> = {},
 ): PlanWeek[] {
   const raceDate = parseISO(raceDateISO)
   const week8Monday = mondayOf(raceDate)
@@ -121,6 +128,17 @@ export function generatePlan(
         label: blocking.label,
         note: 'Tournament weekend',
       }
+    })
+
+    // Fourth pass: apply user overrides on top of everything.
+    workouts = workouts.map((w) => {
+      const ovr = overrides[w.id]
+      if (!ovr) return w
+      const next: PlannedWorkout = { ...w, edited: true }
+      if (ovr.type !== undefined) next.type = ovr.type
+      if (ovr.plannedMiles !== undefined) next.plannedMiles = ovr.plannedMiles
+      if (ovr.label !== undefined) next.label = ovr.label
+      return next
     })
 
     weeks.push({

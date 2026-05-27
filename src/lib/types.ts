@@ -20,6 +20,14 @@ export interface PlannedWorkout {
   label: string
   note?: string
   rescheduledFrom?: DayOfWeek
+  edited?: boolean           // true when overridden by the user
+}
+
+/** User-authored override of a planned workout's type/miles/label. */
+export interface WorkoutOverride {
+  type?: WorkoutType
+  plannedMiles?: number
+  label?: string
 }
 
 export interface LoggedWorkout {
