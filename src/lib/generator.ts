@@ -134,17 +134,22 @@ export function generatePlan(
         !w.rescheduledFrom,
     )
     if (monday && monday.type === 'cross' && weekHasTournament) {
-      // Pick the displaced running workout (the one that pass 3 is about to
-      // overwrite) with the highest training value. Pace > easy.
-      const displacedRuns = tmpl.workouts.filter(
-        (tw) =>
-          tw.day !== 'Mon' &&
-          (tw.type === 'pace' || tw.type === 'easy') &&
-          isBlocked(
-            isoDate(addDays(weekStart, DAYS_OF_WEEK.indexOf(tw.day))),
-            unavailableRanges,
-          ),
-      )
+      // Pick the displaced running workout with the highest training value.
+      // A workout is "displaced" if EITHER:
+      //   - its day is blocked by the tournament, OR
+      //   - its day is now occupied by the rescheduled long run.
+      // Pass 3 hasn't run yet, but we know which days will be overwritten:
+      // any non-Mon day whose date is blocked, plus the day the long run
+      // just moved to (if any).
+      const reshuffleTargetDay = workouts.find((w) => w.rescheduledFrom)?.day
+      const displacedRuns = tmpl.workouts.filter((tw) => {
+        if (tw.day === 'Mon') return false
+        if (tw.type !== 'pace' && tw.type !== 'easy') return false
+        const date = isoDate(addDays(weekStart, DAYS_OF_WEEK.indexOf(tw.day)))
+        const blockedByTournament = !!isBlocked(date, unavailableRanges)
+        const overwrittenByLongRun = tw.day === reshuffleTargetDay
+        return blockedByTournament || overwrittenByLongRun
+      })
       const ranked = displacedRuns.sort((a, b) => {
         const rank: Record<string, number> = { pace: 0, easy: 1 }
         return (rank[a.type] ?? 9) - (rank[b.type] ?? 9)
