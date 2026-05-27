@@ -28,6 +28,15 @@ function isBlocked(dateISO: string, ranges: UnavailableRange[]): UnavailableRang
 }
 
 /**
+ * The workout label for a blocked day. Tournament-type blocks become
+ * 'Cross-training' (the badge already carries the 'Frisbee tournament'
+ * flavor). Plain rest blocks just say 'Rest'.
+ */
+function labelForBlock(range: UnavailableRange): string {
+  return range.treatAs === 'tournament' ? 'Cross-training' : 'Rest'
+}
+
+/**
  * Build the 8-week plan given a race date and a list of unavailable ranges.
  *
  * - The race date is the final Sunday (Week 8 Sun).
@@ -90,8 +99,7 @@ export function generatePlan(
               ...w,
               type: longRunBlocked.treatAs,
               plannedMiles: 0,
-              label: longRunBlocked.label,
-              note: longRunBlocked.label,
+              label: labelForBlock(longRunBlocked),
             }
           }
           if (w.id === targetId) {
@@ -186,13 +194,12 @@ export function generatePlan(
       const blocking = isBlocked(w.date, unavailableRanges)
       if (!blocking) return w
       // If we already replaced this slot above (the original Sun slot), keep it.
-      if (w.type === blocking.treatAs && w.note === blocking.label) return w
+      if (w.type === blocking.treatAs && w.label === labelForBlock(blocking)) return w
       return {
         ...w,
         type: blocking.treatAs,
         plannedMiles: 0,
-        label: blocking.label,
-        note: blocking.label,
+        label: labelForBlock(blocking),
       }
     })
 

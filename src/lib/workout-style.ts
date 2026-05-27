@@ -56,7 +56,7 @@ export function workoutStyle(type: WorkoutType): WorkoutStyle | null {
         badgeBg: 'bg-orange-100 dark:bg-orange-950/60',
         badgeText: 'text-orange-800 dark:text-orange-300',
         dotColor: 'bg-orange-500',
-        badgeLabel: 'tournament',
+        badgeLabel: 'Frisbee tournament',
       }
     case 'rest':
       return null
