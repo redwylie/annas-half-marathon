@@ -25,6 +25,9 @@ export function computeStats(
   weeks: PlanWeek[],
   logs: Record<string, LoggedWorkout>,
 ): PlanStats {
+  // Round to 1 decimal to avoid float-summation noise (3.1 + 6.2 + 13.1 -> 22.4...0001)
+  const round1 = (n: number) => Math.round(n * 10) / 10
+
   const weekStats: WeekStats[] = weeks.map((w) => {
     const trackable = w.workouts.filter((x) => x.type !== 'rest')
     const planned = trackable.reduce((s, x) => s + x.plannedMiles, 0)
@@ -35,8 +38,8 @@ export function computeStats(
     return {
       weekNumber: w.weekNumber,
       label: w.label,
-      plannedMiles: planned,
-      actualMiles: actual,
+      plannedMiles: round1(planned),
+      actualMiles: round1(actual),
       workoutsTotal: trackable.length,
       workoutsDone: done,
     }
@@ -78,8 +81,8 @@ export function computeStats(
 
   return {
     weeks: weekStats,
-    totalPlannedMiles: weekStats.reduce((s, w) => s + w.plannedMiles, 0),
-    totalActualMiles: weekStats.reduce((s, w) => s + w.actualMiles, 0),
+    totalPlannedMiles: round1(weekStats.reduce((s, w) => s + w.plannedMiles, 0)),
+    totalActualMiles: round1(weekStats.reduce((s, w) => s + w.actualMiles, 0)),
     totalWorkouts: weekStats.reduce((s, w) => s + w.workoutsTotal, 0),
     totalCompleted: weekStats.reduce((s, w) => s + w.workoutsDone, 0),
     longestRunMiles: longest,

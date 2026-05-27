@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { generatePlan, currentWeekNumber } from '../lib/generator'
+import { useSafeToggleComplete } from '../lib/use-safe-toggle'
 import WeekCard from '../components/WeekCard'
 import LogSheet from '../components/LogSheet'
 import type { PlannedWorkout } from '../lib/types'
@@ -9,7 +10,7 @@ export default function PlanPage() {
   const settings = useStore((s) => s.settings)
   const logs = useStore((s) => s.logs)
   const overrides = useStore((s) => s.overrides)
-  const toggleComplete = useStore((s) => s.toggleComplete)
+  const toggleComplete = useSafeToggleComplete()
   const logWorkout = useStore((s) => s.logWorkout)
   const setOverride = useStore((s) => s.setOverride)
   const clearOverride = useStore((s) => s.clearOverride)

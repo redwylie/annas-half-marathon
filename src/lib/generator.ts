@@ -131,9 +131,15 @@ export function generatePlan(
     })
 
     // Fourth pass: apply user overrides on top of everything.
+    // Skip days that have been auto-rescheduled (the long run moved here) or
+    // that are now occupied by a tournament — re-applying her stale edit on
+    // top of those would silently lose the reshuffled long run or contradict
+    // the real-life conflict.
     workouts = workouts.map((w) => {
       const ovr = overrides[w.id]
       if (!ovr) return w
+      if (w.rescheduledFrom) return w
+      if (w.type === 'tournament') return w
       const next: PlannedWorkout = { ...w, edited: true }
       if (ovr.type !== undefined) next.type = ovr.type
       if (ovr.plannedMiles !== undefined) next.plannedMiles = ovr.plannedMiles

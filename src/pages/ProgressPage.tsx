@@ -54,7 +54,7 @@ export default function ProgressPage() {
           icon={<Footprints className="h-4 w-4" />}
           label="Miles logged"
           value={stats.totalActualMiles.toFixed(1)}
-          sub={`of ~${stats.totalPlannedMiles} mi`}
+          sub={`of ~${Math.round(stats.totalPlannedMiles)} mi`}
         />
         <StatCard
           icon={<Trophy className="h-4 w-4" />}

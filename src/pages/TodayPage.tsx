@@ -4,6 +4,7 @@ import { Check, ListChecks, PartyPopper, Pencil, Sparkles } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useStore } from '../store'
 import { generatePlan } from '../lib/generator'
+import { useSafeToggleComplete } from '../lib/use-safe-toggle'
 import { getToday } from '../lib/today'
 import { workoutStyle } from '../lib/workout-style'
 import type { PlannedWorkout, LoggedWorkout } from '../lib/types'
@@ -14,7 +15,7 @@ export default function TodayPage() {
   const settings = useStore((s) => s.settings)
   const logs = useStore((s) => s.logs)
   const overrides = useStore((s) => s.overrides)
-  const toggleComplete = useStore((s) => s.toggleComplete)
+  const toggleComplete = useSafeToggleComplete()
   const logWorkout = useStore((s) => s.logWorkout)
   const setOverride = useStore((s) => s.setOverride)
   const clearOverride = useStore((s) => s.clearOverride)

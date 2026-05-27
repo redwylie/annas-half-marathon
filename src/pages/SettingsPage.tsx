@@ -8,12 +8,31 @@ import type { UnavailableRange } from '../lib/types'
 
 export default function SettingsPage() {
   const settings = useStore((s) => s.settings)
+  const logs = useStore((s) => s.logs)
+  const overrides = useStore((s) => s.overrides)
+  const onboardingDone = useStore((s) => s.onboardingDone)
   const updateSettings = useStore((s) => s.updateSettings)
   const addUnavailable = useStore((s) => s.addUnavailable)
   const removeUnavailable = useStore((s) => s.removeUnavailable)
   const resetAll = useStore((s) => s.resetAll)
 
   const targets = paceTargets(settings.goalRaceTime)
+
+  // Wrap resetAll so it always downloads a backup first if there's anything
+  // worth saving. Anna can't accidentally lose work.
+  const safeReset = () => {
+    const hasData =
+      Object.keys(logs).length > 0 ||
+      Object.keys(overrides).length > 0 ||
+      settings.unavailableRanges.length > 0
+    if (hasData) {
+      downloadBackup(
+        { settings, logs, overrides, onboardingDone },
+        `${settings.name || 'half-marathon'}-pre-reset`,
+      )
+    }
+    resetAll()
+  }
 
   return (
     <div className="space-y-6 py-6">
@@ -32,18 +51,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Race">
-        <Field label="Race date">
-          <input
-            type="date"
-            value={settings.raceDate}
-            onChange={(e) => updateSettings({ raceDate: e.target.value })}
-            className="w-full bg-transparent text-base text-zinc-900 outline-none dark:text-zinc-100 dark:[color-scheme:dark]"
-          />
-          <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-            {format(parseISO(settings.raceDate), 'EEEE, MMMM d, yyyy')}
-          </div>
-        </Field>
-
+        <RaceDateField />
         <GoalTimeField />
 
         {targets && (
@@ -90,7 +98,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Danger zone">
-        <ResetButton onReset={resetAll} />
+        <ResetButton onReset={safeReset} />
       </Section>
 
       <div className="text-center text-[10px] text-zinc-400 dark:text-zinc-600">
@@ -131,6 +139,96 @@ function Field({
       </div>
       <div className="mt-1">{children}</div>
     </label>
+  )
+}
+
+function RaceDateField() {
+  const raceDate = useStore((s) => s.settings.raceDate)
+  const logs = useStore((s) => s.logs)
+  const settings = useStore((s) => s.settings)
+  const overrides = useStore((s) => s.overrides)
+  const onboardingDone = useStore((s) => s.onboardingDone)
+  const updateSettings = useStore((s) => s.updateSettings)
+  const [pending, setPending] = useState<string | null>(null)
+  const hasLogs = Object.keys(logs).length > 0
+
+  const parsedPending = pending ? parseISO(pending) : null
+  // Sunday = 0
+  const pendingIsSunday = parsedPending ? parsedPending.getDay() === 0 : true
+
+  const apply = (nextDate: string) => {
+    // Auto-backup before applying a destructive change.
+    if (hasLogs) {
+      downloadBackup(
+        { settings, logs, overrides, onboardingDone },
+        `${settings.name || 'half-marathon'}-pre-race-date-change`,
+      )
+    }
+    updateSettings({ raceDate: nextDate })
+    setPending(null)
+  }
+
+  const handleChange = (next: string) => {
+    if (!next) return
+    if (next === raceDate) return
+    if (!hasLogs) {
+      // No data to protect; apply immediately.
+      updateSettings({ raceDate: next })
+      return
+    }
+    setPending(next)
+  }
+
+  return (
+    <>
+      <Field label="Race date">
+        <input
+          type="date"
+          value={raceDate}
+          onChange={(e) => handleChange(e.target.value)}
+          className="w-full bg-transparent text-base text-zinc-900 outline-none dark:text-zinc-100 dark:[color-scheme:dark]"
+        />
+        <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+          {format(parseISO(raceDate), 'EEEE, MMMM d, yyyy')}
+        </div>
+      </Field>
+
+      {pending && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <div className="text-xs font-medium text-amber-900 dark:text-amber-200">
+            Change race date to {format(parseISO(pending), 'EEEE, MMM d, yyyy')}?
+          </div>
+          <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-300">
+            All 8 weeks of the plan will shift to end on the new date. Your logged
+            workouts stay attached to their week + day, so the dates next to them
+            will move. A backup will be downloaded first.
+          </div>
+          {!pendingIsSunday && (
+            <div className="mt-2 rounded-md bg-amber-100 px-2 py-1.5 text-[11px] text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+              Heads up: that's a {format(parseISO(pending), 'EEEE')}. The plan assumes a
+              Sunday race day. Picking another weekday will leave the long-run schedule
+              off by a few days. Pick the nearest Sunday if possible.
+            </div>
+          )}
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPending(null)}
+              className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-50 dark:border-amber-900/60 dark:bg-zinc-900 dark:text-amber-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => apply(pending)}
+              className="flex-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+            >
+              Download backup + change
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -380,6 +478,16 @@ function DataActions() {
 
   const confirmRestore = () => {
     if (!confirming) return
+    // Auto-backup current state before replacing it. If she restored the wrong
+    // file, the pre-restore download is her undo button.
+    const hasData =
+      Object.keys(logs).length > 0 || Object.keys(overrides).length > 0
+    if (hasData) {
+      downloadBackup(
+        { settings, logs, overrides, onboardingDone },
+        `${settings.name || 'half-marathon'}-pre-restore`,
+      )
+    }
     restoreFromBackup(confirming.nextState)
     const logCount = Object.keys(confirming.nextState.logs).length
     setConfirming(null)
@@ -441,6 +549,9 @@ function DataActions() {
             {Object.keys(confirming.nextState.overrides).length} edits ·{' '}
             {confirming.nextState.settings.unavailableRanges.length} unavailable date ranges
           </div>
+          <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-300">
+            Your current progress will be downloaded as a backup first.
+          </div>
           <div className="mt-2 flex gap-2">
             <button
               type="button"
@@ -483,6 +594,9 @@ function ResetButton({ onReset }: { onReset: () => void }) {
     <div className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/30">
       <div className="text-xs font-medium text-red-900 dark:text-red-200">
         Wipe everything — logs, overrides, settings — and start over?
+      </div>
+      <div className="mt-1 text-[11px] text-red-800 dark:text-red-300">
+        A backup file will be downloaded first, just in case.
       </div>
       <div className="mt-2 flex gap-2">
         <button

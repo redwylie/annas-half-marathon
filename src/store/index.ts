@@ -9,6 +9,15 @@ import type {
 
 const RACE_DATE_DEFAULT = '2026-08-02'
 
+function newId(): string {
+  // crypto.randomUUID exists in all modern browsers + Node 19+ but we keep a
+  // fallback so even on older Safari we don't collide on rapid taps.
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 const DEFAULT_TOURNAMENTS: UnavailableRange[] = [
   {
     id: 'tournament-jun-12',
@@ -105,7 +114,7 @@ export const useStore = create<AppState>()(
             ...s.settings,
             unavailableRanges: [
               ...s.settings.unavailableRanges,
-              { ...range, id: `range-${Date.now()}` },
+              { ...range, id: `range-${newId()}` },
             ],
           },
         })),
@@ -130,6 +139,45 @@ export const useStore = create<AppState>()(
     {
       name: 'ahmt-v1',
       version: 1,
+      // Future schema bumps land here. Each case must return a state
+      // object compatible with the CURRENT app — never throw, never
+      // wipe logs. If you can't migrate a field, default it.
+      migrate: (persistedState: unknown, fromVersion: number) => {
+        const state = (persistedState as Partial<AppState>) ?? {}
+        // No real migrations yet; we're at v1. This switch exists so
+        // future versions don't fall through zustand's default
+        // "version mismatch -> return initial" behavior.
+        if (fromVersion < 1) {
+          return state
+        }
+        return state
+      },
+      // Defensive merge: shallow-merge persisted state onto the live
+      // initial state, so any newly-added top-level field (e.g. when
+      // we added `overrides` and `onboardingDone` mid-flight) gets a
+      // safe default instead of being undefined.
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState as Partial<AppState>) ?? {}
+        return {
+          ...currentState,
+          ...persisted,
+          settings: {
+            ...currentState.settings,
+            ...(persisted.settings ?? {}),
+            // unavailableRanges must be an array, even if a corrupted
+            // persisted state has `undefined`.
+            unavailableRanges: Array.isArray(persisted.settings?.unavailableRanges)
+              ? persisted.settings!.unavailableRanges
+              : currentState.settings.unavailableRanges,
+          },
+          logs: typeof persisted.logs === 'object' && persisted.logs ? persisted.logs : {},
+          overrides:
+            typeof persisted.overrides === 'object' && persisted.overrides
+              ? persisted.overrides
+              : {},
+          onboardingDone: !!persisted.onboardingDone,
+        }
+      },
     },
   ),
 )
