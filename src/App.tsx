@@ -1,12 +1,16 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useStore } from './store'
 import Header from './components/Header'
 import BottomNav from './components/BottomNav'
+import Onboarding from './components/Onboarding'
 import TodayPage from './pages/TodayPage'
 import PlanPage from './pages/PlanPage'
 import ProgressPage from './pages/ProgressPage'
 import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
+  const onboardingDone = useStore((s) => s.onboardingDone)
+
   return (
     <HashRouter>
       <div className="flex min-h-full flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -21,6 +25,7 @@ export default function App() {
           </Routes>
         </main>
         <BottomNav />
+        {!onboardingDone && <Onboarding />}
       </div>
     </HashRouter>
   )

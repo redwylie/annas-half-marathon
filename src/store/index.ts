@@ -37,6 +37,7 @@ interface AppState {
   settings: UserSettings
   logs: Record<string, LoggedWorkout>
   overrides: Record<string, WorkoutOverride>
+  onboardingDone: boolean
   toggleComplete: (workoutId: string) => void
   logWorkout: (log: LoggedWorkout) => void
   setOverride: (workoutId: string, override: WorkoutOverride) => void
@@ -44,11 +45,12 @@ interface AppState {
   updateSettings: (patch: Partial<UserSettings>) => void
   addUnavailable: (range: Omit<UnavailableRange, 'id'>) => void
   removeUnavailable: (id: string) => void
+  completeOnboarding: () => void
   resetAll: () => void
 }
 
 const initialSettings: UserSettings = {
-  name: '',
+  name: 'Anna',
   goalRaceTime: null,
   raceDate: RACE_DATE_DEFAULT,
   units: 'mi',
@@ -61,6 +63,7 @@ export const useStore = create<AppState>()(
       settings: initialSettings,
       logs: {},
       overrides: {},
+      onboardingDone: false,
       toggleComplete: (workoutId) =>
         set((s) => {
           const existing = s.logs[workoutId]
@@ -107,7 +110,9 @@ export const useStore = create<AppState>()(
             unavailableRanges: s.settings.unavailableRanges.filter((r) => r.id !== id),
           },
         })),
-      resetAll: () => set({ settings: initialSettings, logs: {}, overrides: {} }),
+      completeOnboarding: () => set({ onboardingDone: true }),
+      resetAll: () =>
+        set({ settings: initialSettings, logs: {}, overrides: {}, onboardingDone: false }),
     }),
     {
       name: 'ahmt-v1',

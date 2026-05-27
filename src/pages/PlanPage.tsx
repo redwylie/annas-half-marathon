@@ -29,7 +29,7 @@ export default function PlanPage() {
         8-week plan
       </h1>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Hal Higdon Novice 2, adapted for a Sunday race day and frisbee tournament weekends.
+        Adapted for a Sunday race day and frisbee tournament weekends.
       </p>
 
       <div className="mt-4 space-y-3">

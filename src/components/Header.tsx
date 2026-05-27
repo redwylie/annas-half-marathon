@@ -1,11 +1,15 @@
-import { differenceInCalendarDays } from 'date-fns'
-
-const RACE_DATE = new Date('2026-08-02T00:00:00')
+import { differenceInCalendarDays, parseISO, format } from 'date-fns'
+import { useStore } from '../store'
 
 export default function Header() {
-  const daysToRace = Math.max(0, differenceInCalendarDays(RACE_DATE, new Date()))
+  const name = useStore((s) => s.settings.name)
+  const raceDate = useStore((s) => s.settings.raceDate)
+  const race = parseISO(raceDate)
+  const daysToRace = Math.max(0, differenceInCalendarDays(race, new Date()))
   const label =
     daysToRace === 0 ? 'Race day!' : `${daysToRace} ${daysToRace === 1 ? 'day' : 'days'} to go`
+  const title = name ? `${name}'s Half` : "Half Marathon"
+  const subtitle = `${format(race, 'MMM d, yyyy')} · ${format(race, 'EEEE')}`
 
   return (
     <header className="pt-safe sticky top-0 z-10 border-b border-zinc-200/70 bg-white/80 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80">
@@ -18,11 +22,9 @@ export default function Header() {
           />
           <div className="leading-tight">
             <div className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
-              Anna's Half
+              {title}
             </div>
-            <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Aug 2, 2026 · Sunday
-            </div>
+            <div className="text-[11px] text-zinc-500 dark:text-zinc-400">{subtitle}</div>
           </div>
         </div>
         <div className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm dark:bg-emerald-500">
