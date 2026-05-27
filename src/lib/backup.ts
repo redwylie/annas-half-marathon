@@ -52,7 +52,10 @@ export function parseBackup(raw: string): BackupPayload['state'] | { error: stri
     return { error: 'Backup file is empty or malformed.' }
   }
   const obj = parsed as Partial<BackupPayload>
-  if (obj.app !== 'annas-half-marathon') {
+  // Accept the current app identity plus any historical names so renaming
+  // the repo or rebranding the app doesn't strand old backups.
+  const KNOWN_APP_NAMES = ['annas-half-marathon', 'run-anna-run']
+  if (typeof obj.app !== 'string' || !KNOWN_APP_NAMES.includes(obj.app)) {
     return { error: 'This file does not look like a Run Anna Run backup.' }
   }
   if (obj.version !== 1) {

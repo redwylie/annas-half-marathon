@@ -91,7 +91,6 @@ export function generatePlan(
       if (target) {
         const originalSundayId = longRun.id
         const targetId = target.id
-        const targetDay = target.day
 
         workouts = workouts.map((w) => {
           if (w.id === originalSundayId) {
@@ -113,7 +112,20 @@ export function generatePlan(
           }
           return w
         })
-        void targetDay  // keep targetDay symbol for clarity / future tests
+      } else {
+        // Pathological case: every weekday in the week is blocked, so the
+        // long run has nowhere to go. Surface a note on the Sunday slot so
+        // it shows up in the UI; pass 3 will still mark the day, but the
+        // note will remain visible.
+        const originalSundayId = longRun.id
+        workouts = workouts.map((w) =>
+          w.id === originalSundayId
+            ? {
+                ...w,
+                note: `${longRun.plannedMiles} mi long run skipped — every day this week is blocked`,
+              }
+            : w,
+        )
       }
     }
 
@@ -191,6 +203,9 @@ export function generatePlan(
       // Don't overwrite the just-relocated long run; it's intentionally on a
       // day inside the range only if no other option existed (degenerate case).
       if (w.rescheduledFrom) return w
+      // Race day is sacred. Even if someone adds an unavailable range that
+      // covers it, leave the race-day workout untouched.
+      if (w.type === 'race-day') return w
       const blocking = isBlocked(w.date, unavailableRanges)
       if (!blocking) return w
       // If we already replaced this slot above (the original Sun slot), keep it.

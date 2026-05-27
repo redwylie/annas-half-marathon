@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import type { PlannedWorkout, LoggedWorkout, WorkoutType, WorkoutOverride } from '../lib/types'
 import { computePace, parseTimeToSeconds, formatSeconds } from '../lib/pace'
@@ -54,22 +54,56 @@ export default function LogSheet({
   const [plannedMiles, setPlannedMiles] = useState('')
   const [plannedLabel, setPlannedLabel] = useState('')
 
+  // Snapshot of the values the sheet was opened with, used to detect
+  // unsaved changes if she tries to close via cancel/backdrop.
+  const initialRef = useRef<{
+    miles: string
+    time: string
+    rpe: number | null
+    notes: string
+  }>({ miles: '', time: '', rpe: null, notes: '' })
+
   useEffect(() => {
     if (!open || !workout) return
     const isRest = workout.type === 'rest'
-    setMiles(initialLog?.actualMiles?.toString() ?? (isRest ? '' : workout.plannedMiles.toString()))
-    setTime(
-      initialLog?.actualMinutes
-        ? formatSeconds(initialLog.actualMinutes * 60)
-        : '',
-    )
-    setRpe(initialLog?.perceivedEffort ?? null)
-    setNotes(initialLog?.notes ?? '')
+    const seedMiles =
+      initialLog?.actualMiles?.toString() ?? (isRest ? '' : workout.plannedMiles.toString())
+    const seedTime = initialLog?.actualMinutes
+      ? formatSeconds(initialLog.actualMinutes * 60)
+      : ''
+    const seedRpe = initialLog?.perceivedEffort ?? null
+    const seedNotes = initialLog?.notes ?? ''
+    setMiles(seedMiles)
+    setTime(seedTime)
+    setRpe(seedRpe)
+    setNotes(seedNotes)
     setPlannedType(workout.type === 'race' || workout.type === 'race-day' ? 'easy' : workout.type)
     setPlannedMiles(workout.plannedMiles ? workout.plannedMiles.toString() : '')
     setPlannedLabel(workout.label)
     setEditOpen(hasOverride ?? false)
+    initialRef.current = {
+      miles: seedMiles,
+      time: seedTime,
+      rpe: seedRpe,
+      notes: seedNotes,
+    }
   }, [open, workout, initialLog, hasOverride])
+
+  const isDirty =
+    miles !== initialRef.current.miles ||
+    time !== initialRef.current.time ||
+    rpe !== initialRef.current.rpe ||
+    notes !== initialRef.current.notes
+
+  const handleClose = () => {
+    if (isDirty) {
+      const ok = window.confirm(
+        "You haven't saved your changes. Close anyway and lose what you typed?",
+      )
+      if (!ok) return
+    }
+    onClose()
+  }
 
   if (!workout) return null
 
@@ -110,7 +144,7 @@ export default function LogSheet({
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={workout.label}>
+    <Sheet open={open} onClose={handleClose} title={workout.label}>
       <div className="space-y-5">
         {/* LOG SECTION */}
         {!isRest && (
@@ -274,7 +308,7 @@ export default function LogSheet({
         <div className="flex gap-2 pt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             Cancel
