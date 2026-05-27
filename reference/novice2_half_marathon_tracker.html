@@ -1,0 +1,303 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.wrap{padding:0.75rem 0 2rem}
+.progress-bar-bg{background:var(--color-background-secondary);border-radius:99px;height:6px;width:100%;margin:8px 0 4px}
+.progress-bar-fill{background:#1D9E75;border-radius:99px;height:6px;transition:width 0.3s}
+.stat-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:1rem}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.stat-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:2px}
+.stat-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.stat-sub{font-size:11px;color:var(--color-text-tertiary)}
+.week-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:10px;overflow:hidden}
+.week-card.active{border-color:#1D9E75;border-width:1.5px}
+.week-card.done{opacity:0.7}
+.week-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer}
+.week-left{display:flex;align-items:center;gap:10px}
+.week-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0}
+.week-icon.done-icon{background:#E1F5EE;color:#085041}
+.week-icon.active-icon{background:#1D9E75;color:#fff}
+.week-icon.future-icon{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.week-title{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.week-meta{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+.week-right{display:flex;align-items:center;gap:8px}
+.week-prog{font-size:12px;color:var(--color-text-secondary)}
+.chevron{font-size:16px;color:var(--color-text-tertiary);transition:transform 0.2s}
+.chevron.open{transform:rotate(180deg)}
+.week-body{padding:0 14px 12px;border-top:0.5px solid var(--color-border-tertiary)}
+.workout-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.workout-row:last-child{border-bottom:none}
+.check-wrap{flex-shrink:0}
+.check-wrap input[type=checkbox]{width:20px;height:20px;cursor:pointer;accent-color:#1D9E75}
+.workout-info{flex:1}
+.workout-day{font-size:12px;color:var(--color-text-secondary);margin-bottom:1px}
+.workout-name{font-size:14px;color:var(--color-text-primary)}
+.workout-name.checked{color:var(--color-text-tertiary);text-decoration:line-through}
+.badge{display:inline-block;font-size:10px;border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:middle}
+.badge-pace{background:var(--color-background-info);color:var(--color-text-info)}
+.badge-cross{background:#FAEEDA;color:#633806}
+.badge-race{background:#E1F5EE;color:#085041}
+.badge-long{background:#EEEDFE;color:#3C3489}
+.race-banner{background:#1D9E75;border-radius:var(--border-radius-lg);padding:16px;text-align:center;margin-bottom:10px}
+.race-title{font-size:16px;font-weight:500;color:#fff}
+.race-date{font-size:12px;color:rgba(255,255,255,0.8);margin-top:2px}
+.days-chip{display:inline-block;background:rgba(255,255,255,0.2);border-radius:99px;font-size:13px;font-weight:500;color:#fff;padding:4px 12px;margin-top:8px}
+.reset-btn{font-size:12px;color:var(--color-text-tertiary);background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline}
+</style>
+
+<h2 class="sr-only">8-week Hal Higdon Novice 2 half marathon training tracker — tap workouts to mark them complete</h2>
+
+<div class="wrap">
+
+<div class="race-banner">
+  <div class="race-title">Half marathon</div>
+  <div class="race-date">Saturday, August 2, 2025</div>
+  <div class="days-chip" id="days-chip">— days to go</div>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat-label">Workouts done</div>
+    <div class="stat-val" id="done-count">0</div>
+    <div class="stat-sub" id="done-sub">of 48 total</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Miles logged</div>
+    <div class="stat-val" id="miles-done">0</div>
+    <div class="stat-sub" id="miles-sub">of ~127 mi</div>
+  </div>
+</div>
+
+<div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
+<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:1rem" id="prog-label">0% complete</div>
+
+<div id="weeks-container"></div>
+
+<div style="text-align:center;margin-top:8px">
+  <button class="reset-btn" onclick="resetAll()">Reset all progress</button>
+</div>
+
+</div>
+
+<script>
+const PLAN = [
+  {wk:1,label:"Week 1",dates:"Jun 8–14",workouts:[
+    {id:"1-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"1-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"1-wed",day:"Wed",name:"4 mi pace run",type:"pace",mi:4},
+    {id:"1-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"1-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"1-sat",day:"Sat",name:"7 mi long run",type:"long",mi:7},
+    {id:"1-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:2,label:"Week 2",dates:"Jun 15–21",workouts:[
+    {id:"2-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"2-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"2-wed",day:"Wed",name:"4 mi easy run",type:"run",mi:4},
+    {id:"2-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"2-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"2-sat",day:"Sat",name:"8 mi long run",type:"long",mi:8},
+    {id:"2-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:3,label:"Week 3",dates:"Jun 22–28",workouts:[
+    {id:"3-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"3-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"3-wed",day:"Wed",name:"4 mi pace run",type:"pace",mi:4},
+    {id:"3-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"3-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"3-sat",day:"Sat",name:"5-K race (optional)",type:"race",mi:3.1},
+    {id:"3-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:4,label:"Week 4",dates:"Jun 29–Jul 5",workouts:[
+    {id:"4-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"4-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"4-wed",day:"Wed",name:"5 mi easy run",type:"run",mi:5},
+    {id:"4-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"4-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"4-sat",day:"Sat",name:"9 mi long run",type:"long",mi:9},
+    {id:"4-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:5,label:"Week 5",dates:"Jul 6–12",workouts:[
+    {id:"5-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"5-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"5-wed",day:"Wed",name:"5 mi pace run",type:"pace",mi:5},
+    {id:"5-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"5-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"5-sat",day:"Sat",name:"10 mi long run",type:"long",mi:10},
+    {id:"5-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:6,label:"Week 6",dates:"Jul 13–19",workouts:[
+    {id:"6-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"6-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"6-wed",day:"Wed",name:"5 mi easy run",type:"run",mi:5},
+    {id:"6-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"6-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"6-sat",day:"Sat",name:"10-K race (optional)",type:"race",mi:6.2},
+    {id:"6-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:7,label:"Week 7 — Peak",dates:"Jul 20–26",workouts:[
+    {id:"7-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"7-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"7-wed",day:"Wed",name:"5 mi pace run",type:"pace",mi:5},
+    {id:"7-thu",day:"Thu",name:"3 mi easy run",type:"run",mi:3},
+    {id:"7-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"7-sat",day:"Sat",name:"12 mi long run",type:"long",mi:12},
+    {id:"7-sun",day:"Sun",name:"60 min cross-train",type:"cross",mi:0}
+  ]},
+  {wk:8,label:"Week 8 — Race week",dates:"Jul 27–Aug 2",workouts:[
+    {id:"8-mon",day:"Mon",name:"Rest",type:"rest",mi:0},
+    {id:"8-tue",day:"Tue",name:"3 mi easy run",type:"run",mi:3},
+    {id:"8-wed",day:"Wed",name:"2 mi pace run",type:"pace",mi:2},
+    {id:"8-thu",day:"Thu",name:"2 mi easy run",type:"run",mi:2},
+    {id:"8-fri",day:"Fri",name:"Rest",type:"rest",mi:0},
+    {id:"8-sat",day:"Sat",name:"Race day! 13.1 mi",type:"race-day",mi:13.1},
+    {id:"8-sun",day:"Sun",name:"Rest & celebrate",type:"rest",mi:0}
+  ]}
+];
+
+const STORAGE_KEY = "hh_n2_tracker_v1";
+const RACE_DATE = new Date("2025-08-02");
+const TOTAL_WORKOUTS = PLAN.reduce((a,w)=>a+w.workouts.filter(x=>x.type!=="rest").length,0);
+const TOTAL_MILES = PLAN.reduce((a,w)=>a+w.workouts.reduce((b,x)=>b+x.mi,0),0);
+
+let state = {};
+
+function loadState(){
+  try{ state = JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); }catch(e){ state={}; }
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function resetAll(){
+  if(confirm("Reset all progress?")){state={};saveState();renderAll();}
+}
+
+function toggle(id){
+  state[id] = !state[id];
+  saveState();
+  renderAll();
+}
+
+function daysTo(){
+  const now = new Date();
+  const diff = Math.ceil((RACE_DATE - now)/(1000*60*60*24));
+  return diff > 0 ? diff : 0;
+}
+
+function currentWeek(){
+  const now = new Date();
+  const weekStarts = [
+    new Date("2025-06-08"),new Date("2025-06-15"),new Date("2025-06-22"),
+    new Date("2025-06-29"),new Date("2025-07-06"),new Date("2025-07-13"),
+    new Date("2025-07-20"),new Date("2025-07-27")
+  ];
+  for(let i=weekStarts.length-1;i>=0;i--){
+    if(now>=weekStarts[i]) return i+1;
+  }
+  return 1;
+}
+
+function badgeHtml(type){
+  if(type==="pace") return `<span class="badge badge-pace">pace</span>`;
+  if(type==="cross") return `<span class="badge badge-cross">cross-train</span>`;
+  if(type==="long") return `<span class="badge badge-long">long run</span>`;
+  if(type==="race"||type==="race-day") return `<span class="badge badge-race">race</span>`;
+  return "";
+}
+
+function renderAll(){
+  const curWk = currentWeek();
+  const days = daysTo();
+  document.getElementById("days-chip").textContent = days===0 ? "Race day!" : `${days} days to go`;
+
+  let doneCount=0, donesMiles=0;
+  PLAN.forEach(w=>{
+    w.workouts.forEach(wo=>{
+      if(wo.type!=="rest" && state[wo.id]){doneCount++;donesMiles+=wo.mi;}
+    });
+  });
+
+  document.getElementById("done-count").textContent = doneCount;
+  document.getElementById("done-sub").textContent = `of ${TOTAL_WORKOUTS} workouts`;
+  document.getElementById("miles-done").textContent = Math.round(donesMiles*10)/10;
+  document.getElementById("miles-sub").textContent = `of ~${Math.round(TOTAL_MILES)} mi`;
+  const pct = Math.round(doneCount/TOTAL_WORKOUTS*100);
+  document.getElementById("prog-fill").style.width = pct+"%";
+  document.getElementById("prog-label").textContent = pct+"% complete";
+
+  const container = document.getElementById("weeks-container");
+  container.innerHTML = "";
+
+  PLAN.forEach(w=>{
+    const wkDone = w.workouts.filter(x=>x.type!=="rest"&&state[x.id]).length;
+    const wkTotal = w.workouts.filter(x=>x.type!=="rest").length;
+    const allDone = wkDone===wkTotal;
+    const isActive = w.wk===curWk;
+    const isPast = w.wk<curWk;
+
+    let iconClass = isActive ? "active-icon" : (allDone||isPast) ? "done-icon" : "future-icon";
+    let iconContent = allDone ? `<i class="ti ti-check" aria-hidden="true"></i>` : `${w.wk}`;
+    let cardClass = isActive ? "week-card active" : allDone ? "week-card done" : "week-card";
+
+    const bodyId = `body-${w.wk}`;
+    const chevId = `chev-${w.wk}`;
+
+    let workoutRows = w.workouts.map(wo=>{
+      if(wo.type==="rest") return `
+        <div class="workout-row">
+          <div class="check-wrap"><input type="checkbox" disabled style="opacity:0.3"></div>
+          <div class="workout-info">
+            <div class="workout-day">${wo.day}</div>
+            <div class="workout-name" style="color:var(--color-text-tertiary)">Rest</div>
+          </div>
+        </div>`;
+      const chk = state[wo.id] ? "checked" : "";
+      const nameClass = state[wo.id] ? "workout-name checked" : "workout-name";
+      return `
+        <div class="workout-row">
+          <div class="check-wrap"><input type="checkbox" ${chk} onchange="toggle('${wo.id}')"></div>
+          <div class="workout-info">
+            <div class="workout-day">${wo.day}</div>
+            <div class="${nameClass}">${wo.name}${badgeHtml(wo.type)}</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    const openState = isActive ? "open" : "";
+    const displayState = isActive ? "block" : "none";
+
+    container.innerHTML += `
+    <div class="${cardClass}">
+      <div class="week-header" onclick="toggleWeek(${w.wk})">
+        <div class="week-left">
+          <div class="week-icon ${iconClass}">${iconContent}</div>
+          <div>
+            <div class="week-title">${w.label}</div>
+            <div class="week-meta">${w.dates} &nbsp;·&nbsp; ${wkDone}/${wkTotal} done</div>
+          </div>
+        </div>
+        <div class="week-right">
+          <i class="ti ti-chevron-down chevron ${openState}" id="${chevId}" aria-hidden="true"></i>
+        </div>
+      </div>
+      <div id="${bodyId}" style="display:${displayState}">
+        <div class="week-body">${workoutRows}</div>
+      </div>
+    </div>`;
+  });
+}
+
+function toggleWeek(wk){
+  const body = document.getElementById(`body-${wk}`);
+  const chev = document.getElementById(`chev-${wk}`);
+  const open = body.style.display==="block";
+  body.style.display = open ? "none" : "block";
+  chev.classList.toggle("open", !open);
+}
+
+loadState();
+renderAll();
+</script>
