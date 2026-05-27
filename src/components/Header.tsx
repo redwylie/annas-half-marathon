@@ -11,7 +11,7 @@ export default function Header() {
     <header className="pt-safe sticky top-0 z-10 border-b border-zinc-200/70 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <img src="/rabbit.svg" alt="" className="h-7 w-7 text-emerald-700" />
+          <img src={`${import.meta.env.BASE_URL}rabbit.svg`} alt="" className="h-7 w-7" />
           <div className="leading-tight">
             <div className="text-[15px] font-semibold text-zinc-900">Anna's Half</div>
             <div className="text-[11px] text-zinc-500">Aug 2, 2026 · Sunday</div>
