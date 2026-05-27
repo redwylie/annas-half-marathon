@@ -91,7 +91,7 @@ export function generatePlan(
               type: longRunBlocked.treatAs,
               plannedMiles: 0,
               label: longRunBlocked.label,
-              note: 'Tournament weekend',
+              note: longRunBlocked.label,
             }
           }
           if (w.id === targetId) {
@@ -110,6 +110,70 @@ export function generatePlan(
       }
     }
 
+    // Pass 2.5: in a tournament week, the tournament IS the week's
+    // cross-training, so the Monday cross-train slot can be repurposed.
+    //
+    // Rules:
+    //   - Capture template running workouts that pass 3 will overwrite as
+    //     tournament. These are the "displaced" runs.
+    //   - If at least one running workout was displaced, pick the highest-value
+    //     one (pace > easy > long, though long is already handled by pass 2)
+    //     and move it to the Monday cross slot. The Mon slot's id stays the
+    //     same so log entries and overrides keyed to it are preserved.
+    //   - If nothing was displaced (e.g. tournament only overlaps weekend rest
+    //     + the Sunday long that already moved), convert Mon cross-train to
+    //     rest — otherwise the week would have three cross-training days.
+    //   - Only fire if the Monday slot is still its original cross-train and
+    //     untouched by an override (we leave the override pass at the end to
+    //     reapply Anna's intent on a slot that wasn't reshuffled).
+    const monday = workouts.find((w) => w.day === 'Mon')
+    const weekHasTournament = workouts.some(
+      (w) =>
+        w.day !== 'Mon' &&
+        isBlocked(w.date, unavailableRanges) &&
+        !w.rescheduledFrom,
+    )
+    if (monday && monday.type === 'cross' && weekHasTournament) {
+      // Pick the displaced running workout (the one that pass 3 is about to
+      // overwrite) with the highest training value. Pace > easy.
+      const displacedRuns = tmpl.workouts.filter(
+        (tw) =>
+          tw.day !== 'Mon' &&
+          (tw.type === 'pace' || tw.type === 'easy') &&
+          isBlocked(
+            isoDate(addDays(weekStart, DAYS_OF_WEEK.indexOf(tw.day))),
+            unavailableRanges,
+          ),
+      )
+      const ranked = displacedRuns.sort((a, b) => {
+        const rank: Record<string, number> = { pace: 0, easy: 1 }
+        return (rank[a.type] ?? 9) - (rank[b.type] ?? 9)
+      })
+      const bestPick = ranked[0]
+
+      workouts = workouts.map((w) => {
+        if (w.id !== monday.id) return w
+        if (bestPick) {
+          return {
+            ...w,
+            type: bestPick.type,
+            plannedMiles: bestPick.miles,
+            label: bestPick.label,
+            note: 'Moved here — frisbee tournament covers cross-training this week',
+          }
+        }
+        // No displaced run available — make Monday a rest day rather than
+        // stacking three cross-training days in one week.
+        return {
+          ...w,
+          type: 'rest',
+          plannedMiles: 0,
+          label: 'Rest',
+          note: 'Tournament covers cross-training this week',
+        }
+      })
+    }
+
     // Third pass: any remaining workouts whose date is blocked → replace with
     // the range's treatAs type (handles non-long-run conflicts and tournament
     // days that are NOT the relocated long-run slot).
@@ -120,13 +184,13 @@ export function generatePlan(
       const blocking = isBlocked(w.date, unavailableRanges)
       if (!blocking) return w
       // If we already replaced this slot above (the original Sun slot), keep it.
-      if (w.type === blocking.treatAs && w.note === 'Tournament weekend') return w
+      if (w.type === blocking.treatAs && w.note === blocking.label) return w
       return {
         ...w,
         type: blocking.treatAs,
         plannedMiles: 0,
         label: blocking.label,
-        note: 'Tournament weekend',
+        note: blocking.label,
       }
     })
 

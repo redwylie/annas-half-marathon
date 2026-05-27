@@ -53,7 +53,7 @@ export default function WorkoutRow({ workout, completed, onToggle, onLog, log }:
             </span>
           )}
         </div>
-        {workout.note && (
+        {workout.note && workout.note !== workout.label && (
           <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
             {workout.note}
           </div>
