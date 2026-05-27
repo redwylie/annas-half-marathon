@@ -101,7 +101,6 @@ export function generatePlan(
               plannedMiles: longRun.plannedMiles,
               label: longRun.label,
               rescheduledFrom: 'Sun',
-              note: `Moved from Sun (${longRunBlocked.label})`,
             }
           }
           return w
@@ -164,7 +163,6 @@ export function generatePlan(
             type: bestPick.type,
             plannedMiles: bestPick.miles,
             label: bestPick.label,
-            note: 'Moved here — frisbee tournament covers cross-training this week',
           }
         }
         // No displaced run available — make Monday a rest day rather than
@@ -174,7 +172,6 @@ export function generatePlan(
           type: 'rest',
           plannedMiles: 0,
           label: 'Rest',
-          note: 'Tournament covers cross-training this week',
         }
       })
     }

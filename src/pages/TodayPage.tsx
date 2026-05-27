@@ -248,7 +248,7 @@ function WorkoutCard({
 
         {workout.rescheduledFrom && (
           <div className="mt-3 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900 dark:bg-orange-950/40 dark:text-orange-200">
-            Moved from Sunday — {workout.note ?? 'rescheduled around a conflict.'}
+            Moved from {workout.rescheduledFrom === 'Sun' ? 'Sunday' : workout.rescheduledFrom}
           </div>
         )}
 
