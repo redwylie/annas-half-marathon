@@ -1,0 +1,15 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["className=['\"]([^'\"]*)['\"]"],
+    ["className={`([^`]*)`}"]
+  ],
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}
