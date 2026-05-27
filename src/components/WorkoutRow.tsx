@@ -21,7 +21,7 @@ export default function WorkoutRow({ workout, completed, onToggle, onLog, log }:
         type="button"
         onClick={onToggle}
         aria-label={`Mark ${workout.label} ${completed ? 'incomplete' : 'complete'}`}
-        className={`mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-md border transition-colors ${
+        className={`mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-md border transition-all duration-150 active:scale-90 ${
           completed
             ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
             : 'border-zinc-300 hover:border-emerald-500 dark:border-zinc-700 dark:hover:border-emerald-500'

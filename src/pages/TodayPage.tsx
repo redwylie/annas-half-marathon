@@ -176,16 +176,19 @@ function RaceDayCard({
 
 function FallbackCard() {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-        Today
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="bg-gradient-to-br from-zinc-50 to-zinc-100 px-6 py-5 dark:from-zinc-900 dark:to-zinc-950">
+        <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Today
+        </div>
+        <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+          Off the clock
+        </h1>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          Nothing scheduled today. Stretch, hydrate, scroll through Plan if you want
+          a peek at tomorrow.
+        </p>
       </div>
-      <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-        No workout scheduled
-      </h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Enjoy the day off. Tomorrow's on the Plan tab.
-      </p>
     </div>
   )
 }

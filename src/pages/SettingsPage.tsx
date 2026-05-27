@@ -94,7 +94,7 @@ export default function SettingsPage() {
       </Section>
 
       <div className="text-center text-[10px] text-zinc-400 dark:text-zinc-600">
-        v0.5.0 · Anna's Half Marathon Training
+        Run {settings.name || 'Anna'} Run · built with love
       </div>
     </div>
   )

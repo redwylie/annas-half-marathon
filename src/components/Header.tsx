@@ -5,11 +5,21 @@ export default function Header() {
   const name = useStore((s) => s.settings.name)
   const raceDate = useStore((s) => s.settings.raceDate)
   const race = parseISO(raceDate)
+  const title = name ? `Run ${name} Run` : 'Half Marathon'
   const daysToRace = Math.max(0, differenceInCalendarDays(race, new Date()))
   const label =
     daysToRace === 0 ? 'Race day!' : `${daysToRace} ${daysToRace === 1 ? 'day' : 'days'} to go`
-  const title = name ? `${name}'s Half` : "Half Marathon"
   const subtitle = `${format(race, 'MMM d, yyyy')} · ${format(race, 'EEEE')}`
+
+  // Race-day-soon: highlight when within a week.
+  const urgent = daysToRace > 0 && daysToRace <= 7
+  const today = daysToRace === 0
+
+  const chipClass = today
+    ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md ring-2 ring-emerald-500/30'
+    : urgent
+      ? 'bg-amber-500 text-white shadow-sm dark:bg-amber-400 dark:text-amber-950'
+      : 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
 
   return (
     <header className="pt-safe sticky top-0 z-10 border-b border-zinc-200/70 bg-white/80 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80">
@@ -27,7 +37,15 @@ export default function Header() {
             <div className="text-[11px] text-zinc-500 dark:text-zinc-400">{subtitle}</div>
           </div>
         </div>
-        <div className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm dark:bg-emerald-500">
+        <div
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${chipClass}`}
+        >
+          {urgent && (
+            <span className="relative inline-flex h-1.5 w-1.5">
+              <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+            </span>
+          )}
           {label}
         </div>
       </div>

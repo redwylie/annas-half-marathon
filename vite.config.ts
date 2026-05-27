@@ -12,9 +12,9 @@ export default defineConfig(({ command }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'rabbit.svg'],
       manifest: {
-        name: "Anna's Half Marathon Training",
+        name: 'Run Anna Run',
         short_name: 'Run Anna Run',
-        description: '8-week half marathon training plan tracker',
+        description: "Anna's 8-week half marathon training plan",
         theme_color: '#1D9E75',
         background_color: '#fafafa',
         display: 'standalone',
