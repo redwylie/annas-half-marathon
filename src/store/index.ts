@@ -47,6 +47,12 @@ interface AppState {
   removeUnavailable: (id: string) => void
   completeOnboarding: () => void
   resetAll: () => void
+  restoreFromBackup: (next: {
+    settings: UserSettings
+    logs: Record<string, LoggedWorkout>
+    overrides: Record<string, WorkoutOverride>
+    onboardingDone: boolean
+  }) => void
 }
 
 const initialSettings: UserSettings = {
@@ -113,6 +119,13 @@ export const useStore = create<AppState>()(
       completeOnboarding: () => set({ onboardingDone: true }),
       resetAll: () =>
         set({ settings: initialSettings, logs: {}, overrides: {}, onboardingDone: false }),
+      restoreFromBackup: (next) =>
+        set({
+          settings: next.settings,
+          logs: next.logs,
+          overrides: next.overrides,
+          onboardingDone: next.onboardingDone,
+        }),
     }),
     {
       name: 'ahmt-v1',

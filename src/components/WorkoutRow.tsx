@@ -1,4 +1,4 @@
-import { Check, PencilLine } from 'lucide-react'
+import { Check, Pencil } from 'lucide-react'
 import type { PlannedWorkout, LoggedWorkout } from '../lib/types'
 import { workoutStyle } from '../lib/workout-style'
 import { formatSeconds, computePace } from '../lib/pace'
@@ -38,19 +38,10 @@ export default function WorkoutRow({ workout, completed, onToggle, onLog, log }:
               moved from {workout.rescheduledFrom}
             </span>
           )}
-          {workout.edited && (
-            <span className="rounded-sm bg-zinc-200 px-1.5 py-px text-[10px] tracking-normal text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
-              edited
-            </span>
-          )}
         </div>
         <div
           className={`mt-0.5 flex flex-wrap items-center gap-2 text-sm ${
-            completed
-              ? 'text-zinc-400 line-through dark:text-zinc-500'
-              : isRest
-                ? 'text-zinc-500 dark:text-zinc-400'
-                : 'text-zinc-900 dark:text-zinc-100'
+            isRest ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-900 dark:text-zinc-100'
           }`}
         >
           <span>{workout.label}</span>
@@ -79,7 +70,7 @@ export default function WorkoutRow({ workout, completed, onToggle, onLog, log }:
           aria-label={log ? 'Edit log' : 'Log workout details'}
           className="mt-0.5 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         >
-          <PencilLine className="h-4 w-4" />
+          <Pencil className="h-4 w-4" />
         </button>
       )}
     </div>

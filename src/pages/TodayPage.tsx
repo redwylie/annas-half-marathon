@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ListChecks, PartyPopper, PencilLine, Sparkles } from 'lucide-react'
+import { Check, ListChecks, PartyPopper, Pencil, Sparkles } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useStore } from '../store'
 import { generatePlan } from '../lib/generator'
@@ -217,13 +217,7 @@ function WorkoutCard({
               {format(today, 'EEEE, MMM d')}
             </div>
             <div className="mt-1 flex items-center gap-2">
-              <h1
-                className={`text-2xl font-semibold ${
-                  completed
-                    ? 'text-zinc-400 line-through dark:text-zinc-500'
-                    : 'text-zinc-900 dark:text-zinc-100'
-                }`}
-              >
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
                 {workout.label}
               </h1>
             </div>
@@ -295,7 +289,7 @@ function WorkoutCard({
                 aria-label={isRest ? 'Log rest day notes' : 'Log workout details'}
                 className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                <PencilLine className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </button>
             )}
           </div>

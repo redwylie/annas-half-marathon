@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Trash2, Plus, RotateCcw } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Trash2, Plus, RotateCcw, Download, Upload } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useStore } from '../store'
 import { paceTargets } from '../lib/pace-targets'
+import { downloadBackup, parseBackup } from '../lib/backup'
 import type { UnavailableRange } from '../lib/types'
 
 export default function SettingsPage() {
@@ -82,6 +83,10 @@ export default function SettingsPage() {
           )}
         </div>
         <AddUnavailable onAdd={addUnavailable} />
+      </Section>
+
+      <Section title="Data">
+        <DataActions />
       </Section>
 
       <Section title="Danger zone">
@@ -334,6 +339,126 @@ function AddUnavailable({
           Add
         </button>
       </div>
+    </div>
+  )
+}
+
+function DataActions() {
+  const settings = useStore((s) => s.settings)
+  const logs = useStore((s) => s.logs)
+  const overrides = useStore((s) => s.overrides)
+  const onboardingDone = useStore((s) => s.onboardingDone)
+  const restoreFromBackup = useStore((s) => s.restoreFromBackup)
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [status, setStatus] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+  const [confirming, setConfirming] = useState<null | {
+    nextState: Parameters<typeof restoreFromBackup>[0]
+  }>(null)
+
+  const handleDownload = () => {
+    downloadBackup(
+      { settings, logs, overrides, onboardingDone },
+      settings.name || 'half-marathon',
+    )
+    setStatus({ kind: 'ok', text: 'Backup downloaded.' })
+  }
+
+  const handlePick = () => fileInput.current?.click()
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const text = await file.text()
+    const parsed = parseBackup(text)
+    if ('error' in parsed) {
+      setStatus({ kind: 'err', text: parsed.error })
+      return
+    }
+    setConfirming({ nextState: parsed })
+  }
+
+  const confirmRestore = () => {
+    if (!confirming) return
+    restoreFromBackup(confirming.nextState)
+    const logCount = Object.keys(confirming.nextState.logs).length
+    setConfirming(null)
+    setStatus({
+      kind: 'ok',
+      text: `Restored ${logCount} log${logCount === 1 ? '' : 's'} from backup.`,
+    })
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download backup
+        </button>
+        <button
+          type="button"
+          onClick={handlePick}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Restore backup
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleFile}
+          className="hidden"
+        />
+      </div>
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+        Backups save everything (logs, settings, overrides) as a JSON file. Restoring will
+        replace what's currently in the app.
+      </p>
+      {status && (
+        <div
+          className={`rounded-lg px-3 py-2 text-xs ${
+            status.kind === 'ok'
+              ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200'
+              : 'bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200'
+          }`}
+        >
+          {status.text}
+        </div>
+      )}
+      {confirming && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <div className="text-xs font-medium text-amber-900 dark:text-amber-200">
+            Replace current progress with this backup?
+          </div>
+          <div className="mt-1 text-[11px] text-amber-800 dark:text-amber-300">
+            {Object.keys(confirming.nextState.logs).length} logs ·{' '}
+            {Object.keys(confirming.nextState.overrides).length} edits ·{' '}
+            {confirming.nextState.settings.unavailableRanges.length} unavailable date ranges
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-50 dark:border-amber-900/60 dark:bg-zinc-900 dark:text-amber-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmRestore}
+              className="flex-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+            >
+              Replace
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
