@@ -39,7 +39,7 @@ export default function PlanPage() {
             key={week.weekNumber}
             week={week}
             isCurrent={week.weekNumber === currentWk}
-            isPast={week.weekNumber < currentWk}
+            isPast={currentWk !== null && week.weekNumber < currentWk}
             completedIds={completedIds}
             logs={logs}
             onToggle={toggleComplete}

@@ -263,9 +263,17 @@ export function totalWorkouts(weeks: PlanWeek[]): number {
   )
 }
 
-/** The 1-based week number containing today, or 1 before the plan starts. */
-export function currentWeekNumber(weeks: PlanWeek[], today = new Date()): number {
+/**
+ * The 1-based week number containing today, 1 before the plan starts,
+ * or null once the plan has ended (so consumers can stop highlighting).
+ */
+export function currentWeekNumber(
+  weeks: PlanWeek[],
+  today = new Date(),
+): number | null {
   const todayISO = isoDate(today)
+  const last = weeks[weeks.length - 1]
+  if (last && todayISO > last.endDate) return null
   for (let i = weeks.length - 1; i >= 0; i--) {
     if (todayISO >= weeks[i].startDate) return weeks[i].weekNumber
   }

@@ -2,7 +2,7 @@ import type { WeekStats } from '../lib/progress'
 
 interface Props {
   weeks: WeekStats[]
-  currentWeek: number
+  currentWeek: number | null
 }
 
 const HEIGHT = 200

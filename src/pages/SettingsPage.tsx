@@ -151,6 +151,10 @@ function RaceDateField() {
   const updateSettings = useStore((s) => s.updateSettings)
   const [pending, setPending] = useState<string | null>(null)
   const hasLogs = Object.keys(logs).length > 0
+  const hasOverrides = Object.keys(overrides).length > 0
+  // Per-day overrides are keyed by date and become meaningless after a shift,
+  // so they count as data worth protecting just like logs.
+  const hasData = hasLogs || hasOverrides
 
   const parsedPending = pending ? parseISO(pending) : null
   // Sunday = 0
@@ -158,7 +162,7 @@ function RaceDateField() {
 
   const apply = (nextDate: string) => {
     // Auto-backup before applying a destructive change.
-    if (hasLogs) {
+    if (hasData) {
       downloadBackup(
         { settings, logs, overrides, onboardingDone },
         `${settings.name || 'half-marathon'}-pre-race-date-change`,
@@ -171,7 +175,7 @@ function RaceDateField() {
   const handleChange = (next: string) => {
     if (!next) return
     if (next === raceDate) return
-    if (!hasLogs) {
+    if (!hasData) {
       // No data to protect; apply immediately.
       updateSettings({ raceDate: next })
       return

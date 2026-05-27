@@ -151,12 +151,7 @@ export default function Onboarding() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setH('0')
-                  setM('0')
-                  setS('0')
-                  handleFinish()
-                }}
+                onClick={handleSkip}
                 className="block w-full text-center text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
               >
                 Skip — I'll set this later
