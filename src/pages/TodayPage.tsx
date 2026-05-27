@@ -1,18 +1,20 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ListChecks, PartyPopper, Sparkles } from 'lucide-react'
+import { Check, ListChecks, PartyPopper, PencilLine, Sparkles } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useStore } from '../store'
 import { generatePlan } from '../lib/generator'
 import { getToday } from '../lib/today'
 import { workoutStyle } from '../lib/workout-style'
-import type { PlannedWorkout } from '../lib/types'
+import type { PlannedWorkout, LoggedWorkout } from '../lib/types'
 import WorkoutRow from '../components/WorkoutRow'
+import LogSheet from '../components/LogSheet'
 
 export default function TodayPage() {
   const settings = useStore((s) => s.settings)
   const logs = useStore((s) => s.logs)
   const toggleComplete = useStore((s) => s.toggleComplete)
+  const logWorkout = useStore((s) => s.logWorkout)
 
   const weeks = useMemo(
     () => generatePlan(settings.raceDate, settings.unavailableRanges),
@@ -21,19 +23,33 @@ export default function TodayPage() {
   const today = useMemo(() => getToday(weeks), [weeks])
   const completedIds = useMemo(() => new Set(Object.keys(logs)), [logs])
 
+  const [logging, setLogging] = useState<PlannedWorkout | null>(null)
+
   return (
     <div className="space-y-4 py-6">
       <HeroCard
         info={today}
         completed={today.workout ? completedIds.has(today.workout.id) : false}
+        log={today.workout ? logs[today.workout.id] : undefined}
         onToggle={() => today.workout && toggleComplete(today.workout.id)}
+        onLog={today.workout ? () => setLogging(today.workout) : undefined}
       />
 
       <WeekSummary
         weekWorkouts={today.week.workouts}
         completedIds={completedIds}
+        logs={logs}
         onToggle={toggleComplete}
+        onLog={setLogging}
         currentDate={format(new Date(), 'yyyy-MM-dd')}
+      />
+
+      <LogSheet
+        workout={logging}
+        initialLog={logging ? logs[logging.id] : undefined}
+        open={!!logging}
+        onClose={() => setLogging(null)}
+        onSave={logWorkout}
       />
     </div>
   )
@@ -42,19 +58,32 @@ export default function TodayPage() {
 function HeroCard({
   info,
   completed,
+  log,
   onToggle,
+  onLog,
 }: {
   info: ReturnType<typeof getToday>
   completed: boolean
+  log?: LoggedWorkout
   onToggle: () => void
+  onLog?: () => void
 }) {
   if (info.phase === 'pre') return <PreCard daysToStart={info.daysToStart} />
   if (info.phase === 'post') return <PostCard />
-  if (info.phase === 'race-day') return <RaceDayCard workout={info.workout} completed={completed} onToggle={onToggle} />
+  if (info.phase === 'race-day')
+    return <RaceDayCard workout={info.workout} completed={completed} onToggle={onToggle} />
 
   // 'during' phase
   if (!info.workout) return <FallbackCard />
-  return <WorkoutCard workout={info.workout} completed={completed} onToggle={onToggle} />
+  return (
+    <WorkoutCard
+      workout={info.workout}
+      completed={completed}
+      log={log}
+      onToggle={onToggle}
+      onLog={onLog}
+    />
+  )
 }
 
 function PreCard({ daysToStart }: { daysToStart: number }) {
@@ -158,11 +187,15 @@ function FallbackCard() {
 function WorkoutCard({
   workout,
   completed,
+  log,
   onToggle,
+  onLog,
 }: {
   workout: PlannedWorkout
   completed: boolean
+  log?: LoggedWorkout
   onToggle: () => void
+  onLog?: () => void
 }) {
   const style = workoutStyle(workout.type)
   const isRest = workout.type === 'rest'
@@ -224,26 +257,66 @@ function WorkoutCard({
             Frisbee tournament. Crush it out there.
           </p>
         ) : (
-          <button
-            type="button"
-            onClick={onToggle}
-            className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-              completed
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600'
-            }`}
-          >
-            {completed ? (
-              <>
-                <Check className="h-4 w-4" strokeWidth={3} />
-                Completed — tap to undo
-              </>
-            ) : (
-              'Mark complete'
+          <>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={onToggle}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                  completed
+                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600'
+                }`}
+              >
+                {completed ? (
+                  <>
+                    <Check className="h-4 w-4" strokeWidth={3} />
+                    Done — tap to undo
+                  </>
+                ) : (
+                  'Mark complete'
+                )}
+              </button>
+              {onLog && (
+                <button
+                  type="button"
+                  onClick={onLog}
+                  aria-label="Log workout details"
+                  className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  <PencilLine className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {log && (log.actualMiles || log.actualMinutes) && (
+              <LoggedSummary log={log} />
             )}
-          </button>
+          </>
         )}
       </div>
+    </div>
+  )
+}
+
+function LoggedSummary({ log }: { log: LoggedWorkout }) {
+  const parts: string[] = []
+  if (log.actualMiles != null) parts.push(`${log.actualMiles} mi`)
+  if (log.actualMinutes != null) {
+    const totalSec = log.actualMinutes * 60
+    const h = Math.floor(totalSec / 3600)
+    const m = Math.floor((totalSec % 3600) / 60)
+    const s = Math.floor(totalSec % 60)
+    parts.push(
+      h > 0
+        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+        : `${m}:${String(s).padStart(2, '0')}`,
+    )
+  }
+  if (log.perceivedEffort) parts.push(`RPE ${log.perceivedEffort}/5`)
+  if (log.notes) parts.push(`"${log.notes}"`)
+  return (
+    <div className="mt-3 rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-950 dark:text-zinc-400">
+      Logged: {parts.join(' · ')}
     </div>
   )
 }
@@ -251,12 +324,16 @@ function WorkoutCard({
 function WeekSummary({
   weekWorkouts,
   completedIds,
+  logs,
   onToggle,
+  onLog,
   currentDate,
 }: {
   weekWorkouts: PlannedWorkout[]
   completedIds: Set<string>
+  logs: Record<string, LoggedWorkout>
   onToggle: (id: string) => void
+  onLog: (workout: PlannedWorkout) => void
   currentDate: string
 }) {
   const upcoming = weekWorkouts.filter((w) => w.date > currentDate)
@@ -282,7 +359,9 @@ function WeekSummary({
             key={w.id}
             workout={w}
             completed={completedIds.has(w.id)}
+            log={logs[w.id]}
             onToggle={() => onToggle(w.id)}
+            onLog={() => onLog(w)}
           />
         ))}
       </div>

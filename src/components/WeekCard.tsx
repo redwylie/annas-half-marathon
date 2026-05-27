@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import type { PlanWeek } from '../lib/types'
+import type { PlanWeek, PlannedWorkout, LoggedWorkout } from '../lib/types'
 import WorkoutRow from './WorkoutRow'
 
 interface Props {
@@ -10,7 +10,9 @@ interface Props {
   isCurrent?: boolean
   isPast?: boolean
   completedIds: Set<string>
+  logs?: Record<string, LoggedWorkout>
   onToggle: (workoutId: string) => void
+  onLog?: (workout: PlannedWorkout) => void
 }
 
 function formatRange(startISO: string, endISO: string): string {
@@ -29,7 +31,9 @@ export default function WeekCard({
   isCurrent,
   isPast,
   completedIds,
+  logs,
   onToggle,
+  onLog,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen ?? isCurrent ?? false)
 
@@ -94,6 +98,8 @@ export default function WeekCard({
               workout={w}
               completed={completedIds.has(w.id)}
               onToggle={() => onToggle(w.id)}
+              onLog={onLog ? () => onLog(w) : undefined}
+              log={logs?.[w.id]}
             />
           ))}
         </div>

@@ -1,12 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { generatePlan, currentWeekNumber } from '../lib/generator'
 import WeekCard from '../components/WeekCard'
+import LogSheet from '../components/LogSheet'
+import type { PlannedWorkout } from '../lib/types'
 
 export default function PlanPage() {
   const settings = useStore((s) => s.settings)
   const logs = useStore((s) => s.logs)
   const toggleComplete = useStore((s) => s.toggleComplete)
+  const logWorkout = useStore((s) => s.logWorkout)
 
   const weeks = useMemo(
     () => generatePlan(settings.raceDate, settings.unavailableRanges),
@@ -14,6 +17,8 @@ export default function PlanPage() {
   )
   const currentWk = useMemo(() => currentWeekNumber(weeks), [weeks])
   const completedIds = useMemo(() => new Set(Object.keys(logs)), [logs])
+
+  const [logging, setLogging] = useState<PlannedWorkout | null>(null)
 
   return (
     <div className="py-6">
@@ -32,10 +37,20 @@ export default function PlanPage() {
             isCurrent={week.weekNumber === currentWk}
             isPast={week.weekNumber < currentWk}
             completedIds={completedIds}
+            logs={logs}
             onToggle={toggleComplete}
+            onLog={setLogging}
           />
         ))}
       </div>
+
+      <LogSheet
+        workout={logging}
+        initialLog={logging ? logs[logging.id] : undefined}
+        open={!!logging}
+        onClose={() => setLogging(null)}
+        onSave={logWorkout}
+      />
     </div>
   )
 }

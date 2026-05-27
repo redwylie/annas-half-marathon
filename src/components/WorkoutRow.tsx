@@ -1,14 +1,17 @@
-import { Check } from 'lucide-react'
-import type { PlannedWorkout } from '../lib/types'
+import { Check, PencilLine } from 'lucide-react'
+import type { PlannedWorkout, LoggedWorkout } from '../lib/types'
 import { workoutStyle } from '../lib/workout-style'
+import { formatSeconds, computePace } from '../lib/pace'
 
 interface Props {
   workout: PlannedWorkout
   completed: boolean
   onToggle: () => void
+  onLog?: () => void
+  log?: LoggedWorkout
 }
 
-export default function WorkoutRow({ workout, completed, onToggle }: Props) {
+export default function WorkoutRow({ workout, completed, onToggle, onLog, log }: Props) {
   const style = workoutStyle(workout.type)
   const isRest = workout.type === 'rest'
   const isInteractive = !isRest
@@ -67,7 +70,51 @@ export default function WorkoutRow({ workout, completed, onToggle }: Props) {
             {workout.note}
           </div>
         )}
+        {log && (log.actualMiles || log.actualMinutes) && (
+          <LogSummary log={log} />
+        )}
       </div>
+
+      {onLog && isInteractive && (
+        <button
+          type="button"
+          onClick={onLog}
+          aria-label={log ? 'Edit log' : 'Log workout details'}
+          className="mt-0.5 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+        >
+          <PencilLine className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function LogSummary({ log }: { log: LoggedWorkout }) {
+  const seconds = log.actualMinutes ? log.actualMinutes * 60 : 0
+  const pace = log.actualMiles ? computePace(log.actualMiles, seconds) : null
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+      {log.actualMiles != null && (
+        <span className="tabular-nums">{log.actualMiles} mi</span>
+      )}
+      {seconds > 0 && (
+        <>
+          <span aria-hidden>·</span>
+          <span className="tabular-nums">{formatSeconds(seconds)}</span>
+        </>
+      )}
+      {pace && (
+        <>
+          <span aria-hidden>·</span>
+          <span className="tabular-nums">{pace}/mi</span>
+        </>
+      )}
+      {log.perceivedEffort && (
+        <>
+          <span aria-hidden>·</span>
+          <span>RPE {log.perceivedEffort}/5</span>
+        </>
+      )}
     </div>
   )
 }
